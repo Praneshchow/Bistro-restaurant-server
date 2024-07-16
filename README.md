@@ -7,7 +7,8 @@ Initialize: `npm init -y`
 
 Install express, cors, dotnet, mongodb: `npm i express cors dotenv mongodb`
 
-
+### Run the Server: `nodemon index.js`
+ 
 
 
 Study info: 
