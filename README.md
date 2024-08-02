@@ -1,7 +1,7 @@
 # Bistro-restaurant-server
 <hr>
 
-GitHub Server Repository Link: https://github.com/Praneshchow/Bistro-restaurant-client
+GitHub Client Repository Link: https://github.com/Praneshchow/Bistro-restaurant-client
 
 #### Used Technology: 
 
