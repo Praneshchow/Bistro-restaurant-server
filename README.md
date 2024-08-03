@@ -1,5 +1,12 @@
 # Bistro-restaurant-server
+<hr>
 
+GitHub Client Repository Link: https://github.com/Praneshchow/Bistro-restaurant-client
+
+#### Used Technology: 
+
+Frontend: React, React Router, Tailwind CSS, DaisyUI, TanStack Query, Firebase.  
+Backend: Express.js, Node.js, MongoDB.  
 
 ## Server setup:
 
