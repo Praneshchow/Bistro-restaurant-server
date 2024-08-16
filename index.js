@@ -85,7 +85,7 @@ async function run() {
 
     app.post('/users', async (req, res) => {
       const user = req.body;
-      console.log(user);
+      // console.log("user: ", user);
       const query = { email: user.email };
       const existingUser = await usersCollection.findOne(query);
       console.log("existing user: ", existingUser);
@@ -102,20 +102,22 @@ async function run() {
     // check admin. 
     app.get('/users/admin/:email', verifyJWT, async (req, res) => {
       const email = req.params.email;
+      const query = { email: email };
 
       if (req.decoded.email !== email) {
         res.send({ admin: false })
       }
 
-      const query = { email: email };
       const user = await usersCollection.findOne(query);
       const result = { admin: user?.role === 'admin' };
+      console.log("result: ", result);
       res.send(result);
     })
 
     app.patch('/users/admin/:id', async (req, res) => {
       const id = req.params.id;
-      // console.log(id);
+      console.log("patch after id: ", id);
+      
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
