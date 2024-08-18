@@ -130,13 +130,20 @@ async function run() {
     })
 
 
-    // getting the data from mongodb (menu related api). 
+    // menu related api (getting the data from mongodb). 
     app.get('/menu', async (req, res) => {
       const result = await menuCollection.find().toArray();
       res.send(result);
     })
 
-    // getting the data from mongodb (review related api). 
+    // New menu add in the database. 
+    app.post('/menu', verifyJWT, verifyAdmin, async (req, res) => {
+      const newItem = req.body;
+      const result = await menuCollection.insertOne(newItem);  
+      res.send(result);
+    })
+
+    // review related api (getting the data from mongodb). 
     app.get('/reviews', async (req, res) => {
       const result = await reviewCollection.find().toArray();
       res.send(result);
