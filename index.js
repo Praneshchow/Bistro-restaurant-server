@@ -3,12 +3,12 @@ const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 // middleware. 
 app.use(cors());
 app.use(express.json());
-
 
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
@@ -49,11 +49,11 @@ async function run() {
     const reviewCollection = client.db("bistroDB").collection("reviews");     // select menu data. 
     const cartCollection = client.db("bistroDB").collection("carts");     // select menu data. 
     const usersCollection = client.db("bistroDB").collection("users");     // select users data.
-
+    const paymentCollection = client.db("bistroDB").collection("payments");
 
     app.post('/jwt', (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '3h' });
       console.log("token: ", token);
       res.send({ token });
     })
@@ -151,6 +151,7 @@ async function run() {
       res.send(result);
     })
 
+
     // review related api (getting the data from mongodb). 
     app.get('/reviews', async (req, res) => {
       const result = await reviewCollection.find().toArray();
@@ -192,6 +193,29 @@ async function run() {
       res.send(result);
     })
 
+    // create payment intent. 
+    app.post('/create-payment-intent', verifyJWT, async(req, res) => {
+      const {price} = req.body;
+      const amount = price * 100;
+      // console.log("price, amount:", price, amount);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+      // intent send to client site. 
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    })
+
+
+    // payment related api.
+    app.post('/payments', verifyJWT, async(req, res) => {
+      const payment = req.body;
+      const result = await paymentCollection.insertOne(payment);
+      res.send(result);
+    })
 
 
     // Send a ping to confirm a successful connection

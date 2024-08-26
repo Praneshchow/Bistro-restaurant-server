@@ -16,6 +16,10 @@ Install express, cors, dotnet, mongodb: `npm i express cors dotenv mongodb`
 
 JWT install: `npm install jsonwebtoken`
 
+Stripe install : `npm install --save stripe`
+
+Stripe used for payment system. From the [custom payment flow](https://docs.stripe.com/payments/quickstart?client=react&lang=node) documentation, I took the idea of server side code. 
+
 <hr>
 
 ### Run the Server: `nodemon index.js`
