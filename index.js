@@ -45,10 +45,10 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
 
-    const menuCollection = client.db("bistroDB").collection("menu");     // select menu data. 
+    const menuCollection = client.db("bistroDB").collection("menu");          // select menu data. 
     const reviewCollection = client.db("bistroDB").collection("reviews");     // select menu data. 
-    const cartCollection = client.db("bistroDB").collection("carts");     // select menu data. 
-    const usersCollection = client.db("bistroDB").collection("users");     // select users data.
+    const cartCollection = client.db("bistroDB").collection("carts");         // select menu data. 
+    const usersCollection = client.db("bistroDB").collection("users");        // select users data.
     const paymentCollection = client.db("bistroDB").collection("payments");
 
     app.post('/jwt', (req, res) => {
@@ -213,8 +213,12 @@ async function run() {
     // payment related api.
     app.post('/payments', verifyJWT, async(req, res) => {
       const payment = req.body;
-      const result = await paymentCollection.insertOne(payment);
-      res.send(result);
+      const insertResult = await paymentCollection.insertOne(payment);
+
+      const query = {_id: {$in: payment.cartItems.map(id => new ObjectId(id))}}
+      const deleteResult = await cartCollection.deleteMany(query);        // payment was successfully paid. 
+
+      res.send({insertResult, deleteResult});
     })
 
 
