@@ -59,12 +59,12 @@ async function run() {
     })
 
     // warning: use verifyJWT before using verifyAdmin. 
-    const verifyAdmin = async(req, res, next) => {
+    const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
-      const query = {email: email};
+      const query = { email: email };
       const user = await usersCollection.findOne(query);
-      if (user?.role !== 'admin'){
-        return res.status(403).send({error: true, message: 'Forbidden message'});
+      if (user?.role !== 'admin') {
+        return res.status(403).send({ error: true, message: 'Forbidden message' });
       }
       next();
     }
@@ -117,7 +117,7 @@ async function run() {
     app.patch('/users/admin/:id', async (req, res) => {
       const id = req.params.id;
       console.log("patch after id: ", id);
-      
+
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
@@ -139,14 +139,14 @@ async function run() {
     // New menu add in the database. 
     app.post('/menu', verifyJWT, verifyAdmin, async (req, res) => {
       const newItem = req.body;
-      const result = await menuCollection.insertOne(newItem);  
+      const result = await menuCollection.insertOne(newItem);
       res.send(result);
     })
 
     // Delete a menu from the Manage Item. 
     app.delete('/menu/:id', verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
       const result = await menuCollection.deleteOne(query);
       res.send(result);
     })
@@ -194,8 +194,8 @@ async function run() {
     })
 
     // create payment intent. 
-    app.post('/create-payment-intent', verifyJWT, async(req, res) => {
-      const {price} = req.body;
+    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+      const { price } = req.body;
       const amount = price * 100;
       // console.log("price, amount:", price, amount);
       const paymentIntent = await stripe.paymentIntents.create({
@@ -211,15 +211,96 @@ async function run() {
 
 
     // payment related api.
-    app.post('/payments', verifyJWT, async(req, res) => {
+    app.post('/payments', verifyJWT, async (req, res) => {
       const payment = req.body;
       const insertResult = await paymentCollection.insertOne(payment);
 
-      const query = {_id: {$in: payment.cartItems.map(id => new ObjectId(id))}}
+      const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
       const deleteResult = await cartCollection.deleteMany(query);        // payment was successfully paid. 
 
-      res.send({insertResult, deleteResult});
+      res.send({ insertResult, deleteResult });
     })
+
+
+    // admin stats. 
+    app.get('/admin-stats', verifyJWT, verifyAdmin, async (req, res) => {
+      const users = await usersCollection.estimatedDocumentCount();     // count of users form database.
+      const products = await menuCollection.estimatedDocumentCount();   // count of menus from database. 
+      const orders = await paymentCollection.estimatedDocumentCount();     // count of payments from database. 
+
+      // best way to get sum of a field is to use group and sum operation.
+      /*
+      // one approach: 
+      await paymentCollection.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$price' }  
+          }
+        }
+      ])
+      */
+
+      // another approach we can do. 
+      const payments = await paymentCollection.find().toArray();
+      const revenue = payments.reduce((sum, payment) => sum + payment.price, 0);
+
+      res.send({
+        users,
+        products,
+        orders,
+        revenue,
+      })
+    })
+
+    /*
+    -----------------------
+        BASIC SYSTEM ()
+    -----------------------
+    1. load all payments 
+    2. for each payment, ge the menuItems array.
+    3. for each item in the menuItems array get the menuItem from the menu collection. 
+    4. put them in an array: allOrderedItems. 
+    5. separate allOrderedItems by category using filter. 
+    6. now get the quantity by using lenght: pizzas.length
+    7. for each category use reduce to get the total amount spent on this category. 
+
+    */
+
+    app.get('/order-stats', verifyJWT, verifyAdmin, async (req, res) => {
+      const pipeline = [
+        {
+          $lookup: {
+            from: 'menu',
+            localField: 'menuItems',
+            foreignField: '_id',
+            as: 'menuItemsData'
+          }
+        },
+        {
+          $unwind: '$menuItemsData'
+        },
+        {
+          $group: {
+            _id: '$menuItemsData.category',
+            count: { $sum: 1 },
+            total: { $sum: '$menuItemsData.price' }
+          }
+        },
+        {
+          $project: {
+            category: '$_id',
+            count: 1,
+            total: { $round: ['$total', 2] },
+            _id: 0
+          }
+        }
+      ];
+
+      const result = await paymentCollection.aggregate(pipeline).toArray();
+      res.send(result);
+    })
+
 
 
     // Send a ping to confirm a successful connection
